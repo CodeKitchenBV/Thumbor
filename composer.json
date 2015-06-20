@@ -1,0 +1,36 @@
+{
+	"name": "codekitcheneu/thumbor",
+	"description": "A minimal Thumbor plugin for WordPress",
+	"homepage": "https://github.com/CodeKitchenEU/Thumbor",
+	"keywords": [
+		"php", "thumbor", "thumbnails", "wordpress"
+	],
+	"license": "GPL-3.0+",
+	"authors": [
+		{
+			"name": "Marko Heijnen",
+			"homepage": "http://markoheijnen.com"
+		}
+	],
+	"type": "wordpress-plugin",
+	"require": {
+		"99designs/phumbor": "1.0.0",
+		"xrstf/composer-php52": "^1.0.17"
+	},
+	"require-dev": {
+	},
+	"autoload": {
+		
+	},
+	"scripts": {
+		"post-install-cmd": [
+			"xrstf\\Composer52\\Generator::onPostInstallCmd"
+		],
+		"post-update-cmd": [
+			"xrstf\\Composer52\\Generator::onPostInstallCmd"
+		],
+		"post-autoload-dump": [
+			"xrstf\\Composer52\\Generator::onPostInstallCmd"
+		]
+	}
+}
