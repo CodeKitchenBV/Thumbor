@@ -14,7 +14,7 @@
 	],
 	"type": "wordpress-plugin",
 	"require": {
-		"99designs/phumbor": "1.0.0",
+		"99designs/phumbor": "1.1.*",
 		"xrstf/composer-php52": "^1.0.17"
 	},
 	"require-dev": {
