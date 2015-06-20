@@ -71,11 +71,6 @@ Class Thumbor_Builder {
 			return false;
 		}
 
-		// Bail if scheme isn't http or port is set that isn't port 80. When scheme is null assume it's fine.
-		if ( $url_info['scheme'] && ( 'http' != $url_info['scheme'] || ! in_array( $url_info['port'], array( 80, null ) ) ) ) {
-			return false;
-		}
-
 		// Ensure image extension is acceptable
 		if ( ! in_array( strtolower( pathinfo( $url_info['path'], PATHINFO_EXTENSION ) ), $this->extensions ) ) {
 			return false;
