@@ -25,6 +25,14 @@ Class Thumbor_Builder {
 		$image_url = preg_replace( '(^https?://)', '', $image_url );
 		$image_url = $thumbnailUrlFactory->url( $image_url );
 
+		if ( isset( $builder_args['fit'] ) ) {
+			$image_url = $image_url->fitIn( $builder_args['fit']['width'], $builder_args['fit']['height'] );
+		}
+
+		if ( isset( $builder_args['crop'] ) ) {
+			$image_url = $image_url->resize( $builder_args['crop']['width'], $builder_args['crop']['height'] );
+		}
+
 		return $image_url;
 	}
 

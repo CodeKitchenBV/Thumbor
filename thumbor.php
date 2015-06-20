@@ -106,7 +106,7 @@ Class Thumbor {
 	 **/
 
 	public function filter_image_downsize( $image, $attachment_id, $size ) {
-		// Don't foul up the admin side of things, and provide plugins a way of preventing Photon from being applied to images.
+		// Don't foul up the admin side of things, and provide plugins a way of preventing this plugin from being applied to images.
 		if ( is_admin() || apply_filters( 'thumbor_override_image_downsize', false, compact( 'image', 'attachment_id', 'size' ) ) ) {
 			return $image;
 		}
@@ -122,7 +122,7 @@ Class Thumbor {
 				return $image;
 			}
 
-			// If an image is requested with a size known to WordPress, use that size's settings with Photon
+			// If an image is requested with a size known to WordPress, use that size's settings.
 			if ( ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, $this->image_sizes() ) ) {
 				$image_args = self::image_sizes();
 				$image_args = $image_args[ $size ];
@@ -134,7 +134,6 @@ Class Thumbor {
 				if ( 'full' == $size ) {
 					$image_meta = wp_get_attachment_metadata( $attachment_id );
 					if ( isset( $image_meta['width'], $image_meta['height'] ) ) {
-						// 'crop' is true so Photon's `resize` method is used
 						$image_args = array(
 							'width'  => $image_meta['width'],
 							'height' => $image_meta['height'],
@@ -143,32 +142,28 @@ Class Thumbor {
 					}
 				}
 
-				// Expose determined arguments to a filter before passing to Photon
-				$transform = $image_args['crop'] ? 'resize' : 'fit';
+				// Expose determined arguments to a filter.
+				$transform = $image_args['crop'] ? 'crop' : 'fit';
 
-				// Check specified image dimensions and account for possible zero values; photon fails to resize if a dimension is zero.
-				if ( 0 == $image_args['width'] || 0 == $image_args['height'] ) {
-					if ( 0 == $image_args['width'] && 0 < $image_args['height'] ) {
-						$builder_args['h'] = $image_args['height'];
-					} elseif ( 0 == $image_args['height'] && 0 < $image_args['width'] ) {
-						$builder_args['w'] = $image_args['width'];
-					}
+				if ( ( 'resize' === $transform ) && $image_meta = wp_get_attachment_metadata( $attachment_id ) ) {
+					// Lets make sure that we don't upscale images since wp never upscales them as well
+					$smaller_width  = ( ( $image_meta['width']  < $image_args['width']  ) ? $image_meta['width']  : $image_args['width']  );
+					$smaller_height = ( ( $image_meta['height'] < $image_args['height'] ) ? $image_meta['height'] : $image_args['height'] );
+
+					$builder_args[ $transform ] = array(
+						'width'  => $smaller_width,
+						'height' => $smaller_height
+					);
 				} else {
-					if ( ( 'resize' === $transform ) && $image_meta = wp_get_attachment_metadata( $attachment_id ) ) {
-						// Lets make sure that we don't upscale images since wp never upscales them as well
-						$smaller_width  = ( ( $image_meta['width']  < $image_args['width']  ) ? $image_meta['width']  : $image_args['width']  );
-						$smaller_height = ( ( $image_meta['height'] < $image_args['height'] ) ? $image_meta['height'] : $image_args['height'] );
-
-						$builder_args[ $transform ] = $smaller_width . ',' . $smaller_height;
-					} else {
-						$builder_args[ $transform ] = $image_args['width'] . ',' . $image_args['height'];
-					}
-
+					$builder_args[ $transform ] = array(
+						'width'  => $image_args['width'],
+						'height' => $image_args['height']
+					);
 				}
 
 				$builder_args = apply_filters( 'thumbor_image_downsize_string', $builder_args, compact( 'image_args', 'image_url', 'attachment_id', 'size', 'transform' ) );
 
-				// Generate Photon URL
+				// Generate URL
 				$image = array(
 					$builder->url( $image_url, $builder_args ),
 					false,
@@ -180,17 +175,21 @@ Class Thumbor {
 				$height = isset( $size[1] ) ? (int) $size[1] : false;
 
 				// Don't bother if necessary parameters aren't passed.
-				if ( ! $width || ! $height )
+				if ( ! $width || ! $height ) {
 					return $image;
+				}
 
-				// Expose arguments to a filter before passing to Photon
+				// Expose arguments to a filter.
 				$builder_args = array(
-					'fit' => $width . ',' . $height
+					'fit' => array(
+						'width'  => $width,
+						'height' => $height
+					)
 				);
 
 				$builder_args = apply_filters( 'thumbor_image_downsize_array', $builder_args, compact( 'width', 'height', 'image_url', 'attachment_id' ) );
 
-				// Generate Photon URL
+				// Generate URL
 				$image = array(
 					$builder->url( $image_url, $builder_args ),
 					false,
