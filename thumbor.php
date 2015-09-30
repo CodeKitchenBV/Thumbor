@@ -33,6 +33,9 @@ Class Thumbor {
 
 	public function load_hooks() {
 		add_filter( 'image_downsize', array( $this, 'filter_image_downsize' ), 10, 3 );
+
+		// Don't generate image sizes. Thumbor will on the fly do that
+		add_filter( 'intermediate_image_sizes_advanced', '__return_false' );
 	}
 
 
