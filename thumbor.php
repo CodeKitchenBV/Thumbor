@@ -32,6 +32,8 @@ Class Thumbor {
 	}
 
 	public function load_hooks() {
+		add_filter( 'tevkori_srcset_array', array( $this, 'tevkori_srcset_array' ), 10, 3 );
+
 		add_filter( 'image_downsize', array( $this, 'filter_image_downsize' ), 10, 3 );
 
 		// Don't generate image sizes. Thumbor will on the fly do that
@@ -107,6 +109,21 @@ Class Thumbor {
 	/**
 	 ** HOOKS
 	 **/
+
+	public function tevkori_srcset_array( $arr, $id, $size ) {
+		$img = wp_get_attachment_image_src( $id, $size );
+
+		$sizes_in_percentages = array( 25, 50, 75 );
+
+		foreach ( $sizes_in_percentages as $sizes_in_percentage ) {
+			$new_width  = round( $img[1] * ( $sizes_in_percentage / 100 ) );
+			$new_height = round( $img[2] * ( $sizes_in_percentage / 100 ) );
+
+			$arr[ $new_width ] = $this->filter_image_downsize( false, $id, array( $new_width, $new_height ) )[0] . ' ' . $new_width . 'w';
+		}
+
+		return $arr;
+	}
 
 	public function filter_image_downsize( $image, $attachment_id, $size ) {
 		// Don't foul up the admin side of things, and provide plugins a way of preventing this plugin from being applied to images.
