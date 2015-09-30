@@ -111,21 +111,27 @@ Class Thumbor {
 	 **/
 
 	public function tevkori_srcset_array( $arr, $id, $size ) {
-		$img = wp_get_attachment_image_src( $id, $size );
+		$image_args = self::image_sizes();
+		$image_args = $image_args[ $size ];
 
 		$sizes_in_percentages = array( 25, 50, 75 );
 
 		foreach ( $sizes_in_percentages as $sizes_in_percentage ) {
-			$new_width  = round( $img[1] * ( $sizes_in_percentage / 100 ) );
-			$new_height = round( $img[2] * ( $sizes_in_percentage / 100 ) );
+			$new_width  = round( $image_args['width'] * ( $sizes_in_percentage / 100 ) );
+			$new_height = round( $image_args['height'] * ( $sizes_in_percentage / 100 ) );
 
-			$arr[ $new_width ] = $this->filter_image_downsize( false, $id, array( $new_width, $new_height ) )[0] . ' ' . $new_width . 'w';
+			$arr[ $new_width ] = $this->filter_image_downsize(
+				false,
+				$id,
+				array( $new_width, $new_height ),
+				$image_args['crop'] ? 'crop' : 'fit'
+			)[0] . ' ' . $new_width . 'w';
 		}
 
 		return $arr;
 	}
 
-	public function filter_image_downsize( $image, $attachment_id, $size ) {
+	public function filter_image_downsize( $image, $attachment_id, $size, $type = 'fit' ) {
 		// Don't foul up the admin side of things, and provide plugins a way of preventing this plugin from being applied to images.
 		if ( is_admin() || apply_filters( 'thumbor_override_image_downsize', false, compact( 'image', 'attachment_id', 'size' ) ) ) {
 			return $image;
@@ -192,7 +198,7 @@ Class Thumbor {
 				);
 			} elseif ( is_array( $size ) ) {
 				// Pull width and height values from the provided array, if possible
-				$width = isset( $size[0] ) ? (int) $size[0] : false;
+				$width  = isset( $size[0] ) ? (int) $size[0] : false;
 				$height = isset( $size[1] ) ? (int) $size[1] : false;
 
 				// Don't bother if necessary parameters aren't passed.
@@ -202,7 +208,7 @@ Class Thumbor {
 
 				// Expose arguments to a filter.
 				$builder_args = array(
-					'fit' => array(
+					$type => array(
 						'width'  => $width,
 						'height' => $height
 					)
@@ -215,7 +221,7 @@ Class Thumbor {
 					(string) $builder->url( $image_url, $builder_args ),
 					$width,
 					$height,
-					true
+					false
 				);
 			}
 		}
