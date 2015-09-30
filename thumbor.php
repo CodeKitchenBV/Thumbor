@@ -168,9 +168,10 @@ Class Thumbor {
 
 				// Generate URL
 				$image = array(
-					$builder->url( $image_url, $builder_args ),
-					false,
-					false
+					(string) $builder->url( $image_url, $builder_args ),
+					$image_args['width'],
+					$image_args['height'],
+					true
 				);
 			} elseif ( is_array( $size ) ) {
 				// Pull width and height values from the provided array, if possible
@@ -194,9 +195,10 @@ Class Thumbor {
 
 				// Generate URL
 				$image = array(
-					$builder->url( $image_url, $builder_args ),
-					false,
-					false
+					(string) $builder->url( $image_url, $builder_args ),
+					$width,
+					$height,
+					true
 				);
 			}
 		}
@@ -207,5 +209,5 @@ Class Thumbor {
 }
 
 if ( defined( 'THUMBOR_SERVER' ) && defined( 'THUMBOR_SECRET' ) ) {
-	$GLOBAL['thumbor'] = new Thumbor;
+	$GLOBALS['thumbor'] = new Thumbor;
 }
