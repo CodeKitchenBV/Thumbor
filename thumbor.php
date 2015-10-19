@@ -111,6 +111,11 @@ Class Thumbor {
 	 **/
 
 	public function tevkori_srcset_array( $arr, $id, $size ) {
+		// Currently only support when using image sizes
+		if ( is_array( $size ) ) {
+			return $arr;
+		}
+
 		// Reset the array
 		$arr = array();
 
