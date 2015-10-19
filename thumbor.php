@@ -61,6 +61,9 @@ Class Thumbor {
 			);
 		}
 
+		// allow with a filter to turn on smart cropping for all images
+		$builder_args['smart_crop'] = apply_filters( 'thumbor_builder_smart_crop', true, $image_url, $builder_args );
+
 		// Let people filter the args
 		$builder_args = apply_filters( 'thumbor_builder_args', $builder_args, $image_url, $additional_builder_args );
 

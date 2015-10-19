@@ -33,6 +33,10 @@ Class Thumbor_Builder {
 			$image_url = $image_url->resize( $builder_args['crop']['width'], $builder_args['crop']['height'] );
 		}
 
+		if ( isset( $builder_args['smart_crop'] ) ) {
+			$image_url->smartCrop( apply_filters( 'thumbor_smart_crop', $builder_args['smart_crop'] ) );
+		}
+
 		return $image_url;
 	}
 
