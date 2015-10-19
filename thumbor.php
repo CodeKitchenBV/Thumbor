@@ -114,9 +114,11 @@ Class Thumbor {
 		// Reset the array
 		$arr = array();
 
+		// Get current size information
 		$image_args = self::image_sizes();
 		$image_args = $image_args[ $size ];
 
+		// Set the image sizes we want to show
 		$sizes_in_percentages = array( 25, 50, 75 );
 
 		foreach ( $sizes_in_percentages as $sizes_in_percentage ) {
