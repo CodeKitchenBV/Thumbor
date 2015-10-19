@@ -117,6 +117,9 @@ Class Thumbor {
 		// Get original image information
 		$full = wp_get_attachment_image_src( $id, 'full' );
 
+		// Set the image sizes we want to show
+		$sizes_in_percentages = array( 25, 50, 75 );
+
 		// Get current size information
 		if ( 'full' == $size ) {
 			$image_args = array(
