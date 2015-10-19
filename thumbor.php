@@ -111,6 +111,9 @@ Class Thumbor {
 	 **/
 
 	public function tevkori_srcset_array( $arr, $id, $size ) {
+		// Reset the array
+		$arr = array();
+
 		$image_args = self::image_sizes();
 		$image_args = $image_args[ $size ];
 
