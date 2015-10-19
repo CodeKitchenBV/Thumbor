@@ -42,12 +42,45 @@ Class Thumbor {
 
 
 	/**
+	 ** PUBLIC API
+	 **/
+
+	public function get_thumbor_image( $image_url, $width = 0, $height = 0, $crop = false, $additional_builder_args = array() ) {
+		$builder = $this->get_builder();
+
+		// Expose determined arguments to a filter.
+		$transform = $crop ? 'crop' : 'fit';
+
+		// Setting up the builder args
+		$builder_args = $additional_builder_args;
+
+		if ( $width || $height ) {
+			$builder_args[ $transform ] = array(
+				'width'  => $width,
+				'height' => $height
+			);
+		}
+
+		// Let people filter the args
+		$builder_args = apply_filters( 'thumbor_builder_args', $builder_args, $image_url, $additional_builder_args );
+
+		// Check if image URL should be used.
+		if ( ! $builder->validate_image_url( $image_url ) ) {
+			return false;
+		}
+
+		return (string) $builder->url( $image_url, $builder_args );
+	}
+
+
+
+	/**
 	 ** INTERNAL HELPERS
 	 **/
 
 	protected function get_builder() {
 		if ( ! $this->builder ) {
-			include 'thumbor-builder.php';
+			include_once 'thumbor-builder.php';
 			$this->builder = new Thumbor_Builder( THUMBOR_SERVER, THUMBOR_SECRET );
 		}
 
@@ -62,7 +95,7 @@ Class Thumbor {
 	 * @uses get_option
 	 * @return array
 	 */
-	protected function image_sizes() {
+	protected function get_image_sizes() {
 		if ( null == $this->image_sizes ) {
 			global $_wp_additional_image_sizes;
 
@@ -134,7 +167,7 @@ Class Thumbor {
 			);
 		}
 		else {
-			$image_args = self::image_sizes();
+			$image_args = self::get_image_sizes();
 			$image_args = $image_args[ $size ];
 		}
 
@@ -142,18 +175,13 @@ Class Thumbor {
 			$new_width  = round( $image_args['width'] * ( $sizes_in_percentage / 100 ) );
 			$new_height = round( $image_args['height'] * ( $sizes_in_percentage / 100 ) );
 
-			$arr[ $new_width ] = $this->filter_image_downsize(
-				false,
-				$id,
-				array( $new_width, $new_height ),
-				$image_args['crop'] ? 'crop' : 'fit'
-			)[0] . ' ' . $new_width . 'w';
+			$arr[ $new_width ] = $this->get_thumbor_image( wp_get_attachment_url( $id ), $new_width, $new_height, $image_args['crop'] ) . ' ' . $new_width . 'w';
 		}
 
 		return $arr;
 	}
 
-	public function filter_image_downsize( $image, $attachment_id, $size, $type = 'fit' ) {
+	public function filter_image_downsize( $image, $attachment_id, $size ) {
 		// Don't foul up the admin side of things, and provide plugins a way of preventing this plugin from being applied to images.
 		if ( is_admin() || apply_filters( 'thumbor_override_image_downsize', false, compact( 'image', 'attachment_id', 'size' ) ) ) {
 			return $image;
@@ -163,19 +191,10 @@ Class Thumbor {
 		$image_url = wp_get_attachment_url( $attachment_id );
 
 		if ( $image_url ) {
-			$builder = $this->get_builder();
-
-			// Check if image URL should be used.
-			if ( ! $builder->validate_image_url( $image_url ) ) {
-				return $image;
-			}
-
 			// If an image is requested with a size known to WordPress, use that size's settings.
-			if ( ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, $this->image_sizes() ) ) {
-				$image_args = self::image_sizes();
+			if ( ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, $this->get_image_sizes() ) ) {
+				$image_args = self::get_image_sizes();
 				$image_args = $image_args[ $size ];
-
-				$builder_args = array();
 
 				// `full` is a special case in WP
 				// To ensure filter receives consistent data regardless of requested size, `$image_args` is overridden with dimensions of original image.
@@ -185,67 +204,46 @@ Class Thumbor {
 						$image_args = array(
 							'width'  => $image_meta['width'],
 							'height' => $image_meta['height'],
-							'crop'   => true
+							'crop'   => false
 						);
 					}
 				}
 
-				// Expose determined arguments to a filter.
-				$transform = $image_args['crop'] ? 'crop' : 'fit';
-
-				if ( ( 'resize' === $transform ) && $image_meta = wp_get_attachment_metadata( $attachment_id ) ) {
+				if ( ! $image_args['crop'] && $image_meta = wp_get_attachment_metadata( $attachment_id ) ) {
 					// Lets make sure that we don't upscale images since wp never upscales them as well
-					$smaller_width  = ( ( $image_meta['width']  < $image_args['width']  ) ? $image_meta['width']  : $image_args['width']  );
+					$smaller_width  = ( ( $image_meta['width']  < $image_args['width']  ) ? $image_meta['width']  : $image_args['width'] );
 					$smaller_height = ( ( $image_meta['height'] < $image_args['height'] ) ? $image_meta['height'] : $image_args['height'] );
 
-					$builder_args[ $transform ] = array(
-						'width'  => $smaller_width,
-						'height' => $smaller_height
-					);
-				} else {
-					$builder_args[ $transform ] = array(
-						'width'  => $image_args['width'],
-						'height' => $image_args['height']
-					);
+					// Set new width & height
+					$image_args['width']  = $smaller_width;
+					$image_args['height'] = $smaller_height;
 				}
-
-				$builder_args = apply_filters( 'thumbor_image_downsize_string', $builder_args, compact( 'image_args', 'image_url', 'attachment_id', 'size', 'transform' ) );
-
-				// Generate URL
-				$image = array(
-					(string) $builder->url( $image_url, $builder_args ),
-					$image_args['width'],
-					$image_args['height'],
-					true
-				);
-			} elseif ( is_array( $size ) ) {
+			}
+			elseif ( is_array( $size ) ) {
 				// Pull width and height values from the provided array, if possible
-				$width  = isset( $size[0] ) ? (int) $size[0] : false;
-				$height = isset( $size[1] ) ? (int) $size[1] : false;
+				$image_args['width']  = isset( $size[0] ) ? (int) $size[0] : false;
+				$image_args['height'] = isset( $size[1] ) ? (int) $size[1] : false;
+				$image_args['crop']   = false;
 
 				// Don't bother if necessary parameters aren't passed.
-				if ( ! $width || ! $height ) {
+				if ( ! $image_args['width'] && ! $image_args['height'] ) {
 					return $image;
 				}
+			}
 
-				// Expose arguments to a filter.
-				$builder_args = array(
-					$type => array(
-						'width'  => $width,
-						'height' => $height
-					)
-				);
 
-				$builder_args = apply_filters( 'thumbor_image_downsize_array', $builder_args, compact( 'width', 'height', 'image_url', 'attachment_id' ) );
+			$thumbor_url = $this->get_thumbor_image( $image_url, $image_args['width'], $image_args['height'], $image_args['crop'] );
 
+			if ( $thumbor_url ) {
 				// Generate URL
 				$image = array(
-					(string) $builder->url( $image_url, $builder_args ),
-					$width,
-					$height,
-					false
+					$thumbor_url,
+					$image_args['width'],
+					$image_args['height'],
+					$image_args['crop']
 				);
 			}
+
 		}
 
 		return $image;
