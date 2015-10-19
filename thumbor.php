@@ -114,12 +114,21 @@ Class Thumbor {
 		// Reset the array
 		$arr = array();
 
-		// Get current size information
-		$image_args = self::image_sizes();
-		$image_args = $image_args[ $size ];
+		// Get original image information
+		$full = wp_get_attachment_image_src( $id, 'full' );
 
-		// Set the image sizes we want to show
-		$sizes_in_percentages = array( 25, 50, 75 );
+		// Get current size information
+		if ( 'full' == $size ) {
+			$image_args = array(
+				'width'  => $full[1],
+				'height' => $full[2],
+				'crop'   => false
+			);
+		}
+		else {
+			$image_args = self::image_sizes();
+			$image_args = $image_args[ $size ];
+		}
 
 		foreach ( $sizes_in_percentages as $sizes_in_percentage ) {
 			$new_width  = round( $image_args['width'] * ( $sizes_in_percentage / 100 ) );
