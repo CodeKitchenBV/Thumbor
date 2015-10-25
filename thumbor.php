@@ -172,6 +172,18 @@ Class Thumbor {
 		else {
 			$image_args = self::get_image_sizes();
 			$image_args = $image_args[ $size ];
+
+			// Add upscale images for retina support
+			if ( $full[1] / $image_args['width'] >= 2 ) {
+				$sizes_in_percentages[] = 200;
+			}
+			
+			if ( $full[1] / $image_args['width'] >= 1.5 ) {
+				$sizes_in_percentages[] = 150;
+			}
+			else {
+				$sizes_in_percentages[] = ( $full[1] / $image_args['width'] ) * 100;
+			}
 		}
 
 		foreach ( $sizes_in_percentages as $sizes_in_percentage ) {
