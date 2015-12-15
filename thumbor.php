@@ -13,6 +13,9 @@
 
 Class Thumbor {
 
+	// Settings parameter fpr future implementation
+	private $generate_images = false;
+
 	// Private properties for internal usage.
 	private $path;
 	private $builder;
@@ -36,8 +39,10 @@ Class Thumbor {
 
 		add_filter( 'image_downsize', array( $this, 'filter_image_downsize' ), 10, 3 );
 
-		// Don't generate image sizes. Thumbor will on the fly do that
-		add_filter( 'intermediate_image_sizes_advanced', '__return_false' );
+		if ( ! $this->generate_images ) {
+			// Don't generate image sizes. Thumbor will on the fly do that
+			add_filter( 'intermediate_image_sizes_advanced', '__return_false' );
+		}
 	}
 
 
@@ -197,8 +202,13 @@ Class Thumbor {
 	}
 
 	public function filter_image_downsize( $image, $attachment_id, $size ) {
-		// Don't foul up the admin side of things, and provide plugins a way of preventing this plugin from being applied to images.
-		if ( is_admin() || apply_filters( 'thumbor_override_image_downsize', false, compact( 'image', 'attachment_id', 'size' ) ) ) {
+		// Don't foul up the admin side of things when images are being generated
+		if ( $this->generate_images && is_admin() ) {
+			return $image;
+		}
+
+		// Provide plugins a way of preventing this plugin from being applied to images.
+		if ( apply_filters( 'thumbor_override_image_downsize', false, compact( 'image', 'attachment_id', 'size' ) ) ) {
 			return $image;
 		}
 
