@@ -258,7 +258,7 @@ Class Thumbor {
 
 			$thumbor_url = $this->get_thumbor_image( $image_url, $image_args['width'], $image_args['height'], $image_args['crop'] );
 
-			if ( 'query-attachments' == $_REQUEST['action'] ) {
+			if ( isset( $_REQUEST['action'] ) && 'query-attachments' == $_REQUEST['action'] ) {
 				$image_args['crop'] = true;
 			}
 
