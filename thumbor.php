@@ -35,8 +35,11 @@ Class Thumbor {
 	}
 
 	public function load_hooks() {
-		add_filter( 'tevkori_srcset_array', array( $this, 'tevkori_srcset_array' ), 10, 3 );
+		//Fix missing images
+		add_filter( 'wp_calculate_image_srcset_meta', array( $this, 'wp_calculate_image_srcset_meta' ), 10, 4 );
+		add_filter( 'wp_calculate_image_srcset', array( $this, 'wp_calculate_image_srcset' ), 10, 5 );
 
+		// Add thumbor sources
 		add_filter( 'image_downsize', array( $this, 'filter_image_downsize' ), 10, 3 );
 
 		if ( ! $this->generate_images ) {
@@ -109,7 +112,7 @@ Class Thumbor {
 
 			// Populate an array matching the data structure of $_wp_additional_image_sizes so we have a consistent structure for image sizes
 			$images = array(
-				'thumb'  => array(
+				'thumbnail' => array(
 					'width'  => intval( get_option( 'thumbnail_size_w' ) ),
 					'height' => intval( get_option( 'thumbnail_size_h' ) ),
 					'crop'   => (bool) get_option( 'thumbnail_crop' )
@@ -119,20 +122,17 @@ Class Thumbor {
 					'height' => intval( get_option( 'medium_size_h' ) ),
 					'crop'   => false
 				),
-				'large'  => array(
+				'large' => array(
 					'width'  => intval( get_option( 'large_size_w' ) ),
 					'height' => intval( get_option( 'large_size_h' ) ),
 					'crop'   => false
 				),
-				'full'   => array(
+				'full' => array(
 					'width'  => null,
 					'height' => null,
 					'crop'   => false
 				)
 			);
-
-			// Compatibility mapping as found in wp-includes/media.php
-			$images['thumbnail'] = $images['thumb'];
 
 			// Update class variable, merging in $_wp_additional_image_sizes if any are set
 			if ( is_array( $_wp_additional_image_sizes ) && ! empty( $_wp_additional_image_sizes ) ) {
@@ -151,55 +151,42 @@ Class Thumbor {
 	 ** HOOKS
 	 **/
 
-	public function tevkori_srcset_array( $arr, $id, $size ) {
-		// Currently only support when using image sizes
-		if ( is_array( $size ) ) {
-			return $arr;
-		}
+	public function wp_calculate_image_srcset_meta( $image_meta, $size_array, $image_src, $attachment_id ) {
+		$sizes = $this->get_image_sizes();
 
-		// Reset the array
-		$arr = array();
-
-		// Get original image information
-		$full = wp_get_attachment_image_src( $id, 'full' );
-
-		// Set the image sizes we want to show
-		$sizes_in_percentages = array( 25, 50, 75 );
-
-		// Get current size information
-		if ( 'full' == $size ) {
-			$image_args = array(
-				'width'  => $full[1],
-				'height' => $full[2],
-				'crop'   => false
+		foreach ( $sizes as $key => $size ) {
+			$image_meta['sizes'][ $key ] = array(
+				'file'      => '',
+				'width'     => $size['width'],
+				'height'    => $size['height']
 			);
 		}
-		else {
-			$image_args = self::get_image_sizes();
-			$image_args = $image_args[ $size ];
 
-			// Add upscale images for retina support
-			if ( $full[1] / $image_args['width'] >= 2 ) {
-				$sizes_in_percentages[] = 200;
-			}
-			
-			if ( $full[1] / $image_args['width'] >= 1.5 ) {
-				$sizes_in_percentages[] = 150;
-			}
-			else {
-				$sizes_in_percentages[] = ( $full[1] / $image_args['width'] ) * 100;
-			}
-		}
-
-		foreach ( $sizes_in_percentages as $sizes_in_percentage ) {
-			$new_width  = round( $image_args['width'] * ( $sizes_in_percentage / 100 ) );
-			$new_height = round( $image_args['height'] * ( $sizes_in_percentage / 100 ) );
-
-			$arr[ $new_width ] = $this->get_thumbor_image( wp_get_attachment_url( $id ), $new_width, $new_height, $image_args['crop'] ) . ' ' . $new_width . 'w';
-		}
-
-		return $arr;
+		return $image_meta;
 	}
+
+	public function wp_calculate_image_srcset( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
+		$image_src      = wp_get_attachment_url( $attachment_id );
+		$sizes          = $this->get_image_sizes();
+		$sizes_by_width = array();
+
+		foreach ( $sizes as $key => $size ) {
+			$sizes_by_width[ $size['width'] ] = $size;
+		}
+
+		foreach ( $sources as $key => &$value ) {
+			$size         = $sizes_by_width[ $key ];
+			$value['url'] = $this->get_thumbor_image(
+				$image_src,
+				$size['width'],
+				$size['height'],
+				$size['crop']
+			);
+		}
+
+		return $sources;
+	}
+
 
 	public function filter_image_downsize( $image, $attachment_id, $size ) {
 		// Don't foul up the admin side of things when images are being generated
