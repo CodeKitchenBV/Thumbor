@@ -62,6 +62,10 @@ Class Thumbor {
 		// Setting up the builder args
 		$builder_args = $additional_builder_args;
 
+		if ( empty( $builder_args['format'] ) ) {
+			$builder_args['format'] = strtolower( pathinfo( $image_url, PATHINFO_EXTENSION ) );
+		}
+
 		if ( $width || $height ) {
 			$builder_args[ $transform ] = array(
 				'width'  => $width,
@@ -180,7 +184,10 @@ Class Thumbor {
 				$image_src,
 				$size['width'],
 				$size['height'],
-				$size['crop']
+				$size['crop'],
+				array(
+					'format' => isset( $image_meta['format'] ) ? $image_meta['format'] : ''
+				)
 			);
 		}
 

@@ -37,6 +37,14 @@ Class Thumbor_Builder {
 			$image_url->smartCrop( apply_filters( 'thumbor_smart_crop', $builder_args['smart_crop'] ) );
 		}
 
+		if ( ! empty( $builder_args['format'] ) ) {
+			if ( 'jpg' == $builder_args['format'] ) {
+				$builder_args['format'] = 'jpeg';
+			}
+
+			$image_url->addFilter( 'format', $builder_args['format'] );
+		}
+
 		return $image_url;
 	}
 
