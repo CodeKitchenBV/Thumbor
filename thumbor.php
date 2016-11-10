@@ -39,6 +39,9 @@ Class Thumbor {
 		add_filter( 'wp_calculate_image_srcset_meta', array( $this, 'wp_calculate_image_srcset_meta' ), 10, 4 );
 		add_filter( 'wp_calculate_image_srcset', array( $this, 'wp_calculate_image_srcset' ), 10, 5 );
 
+		// Add picture element for webp support
+		add_filter( 'post_thumbnail_html', array( $this, 'add_picture_element' ), 10, 5 );
+
 		// Add thumbor sources
 		add_filter( 'image_downsize', array( $this, 'filter_image_downsize' ), 10, 3 );
 
@@ -192,6 +195,46 @@ Class Thumbor {
 		}
 
 		return $sources;
+	}
+
+	public function add_picture_element( $html, $post_id, $post_thumbnail_id, $size, $attr ) {
+		$doc = new DOMDocument();
+		$doc->loadHTML($html);
+		$xpath    = new DOMXPath($doc);
+		$nodelist = $xpath->query("//img");
+		$node     = $nodelist->item(0); // gets the 1st image
+
+		$width    = $node->attributes->getNamedItem('width')->nodeValue;
+		$height   = $node->attributes->getNamedItem('height')->nodeValue;
+		$src      = $node->attributes->getNamedItem('src')->nodeValue;
+		$class    = $node->attributes->getNamedItem('class')->nodeValue;
+		$alt      = $node->attributes->getNamedItem('alt')->nodeValue;
+
+		if ( $node->attributes->getNamedItem('srcset') ) {
+			$srcset = $node->attributes->getNamedItem('srcset')->nodeValue;
+			$sizes  = $node->attributes->getNamedItem('sizes')->nodeValue;
+
+			$image_meta = wp_get_attachment_metadata( $post_thumbnail_id );
+			$image_meta['format'] = 'webp';
+
+			$size_array = array( absint( $width ), absint( $height ) );
+			$srcset2    = wp_calculate_image_srcset( $size_array, $src, $image_meta, $post_thumbnail_id );
+			$sizes2     = wp_calculate_image_sizes( $size_array, $src, $image_meta, $post_thumbnail_id );
+		}
+		else {
+			$srcset = $sizes  = '';
+
+			$srcset2 = '';
+			$sizes2  = '';
+		}
+
+		$html  = '<picture>';
+		$html .= '<source srcset="' . $srcset2 . '" sizes="' . $sizes2 . '" type="image/webp" />';
+		$html .= '<source srcset="' . $srcset . '" sizes="' . $sizes . '" />';
+		$html .= '<img width="' . $width . '" height="' . $height . '" src="' . $src . '" class="' . $class . '" alt="' . $alt . '" />';
+		$html .= '</picture>';
+
+		return $html;
 	}
 
 
