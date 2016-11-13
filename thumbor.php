@@ -198,12 +198,22 @@ Class Thumbor {
 	}
 
 	public function add_picture_element( $html, $post_id, $post_thumbnail_id, $size, $attr ) {
+		// Don't continue if there is no html
+		if ( ! $html ) {
+			return $html;
+		}
+
 		$doc = new DOMDocument();
 		$doc->loadHTML($html);
 		$xpath    = new DOMXPath($doc);
 		$nodelist = $xpath->query("//img");
 		$node     = $nodelist->item(0); // gets the 1st image
 
+		// Don't continue if there is no image
+		if ( ! $node ) {
+			return;
+		}
+	
 		$width    = $node->attributes->getNamedItem('width')->nodeValue;
 		$height   = $node->attributes->getNamedItem('height')->nodeValue;
 		$src      = $node->attributes->getNamedItem('src')->nodeValue;
