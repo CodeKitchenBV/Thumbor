@@ -99,7 +99,7 @@ Class Thumbor {
 	protected function get_builder() {
 		if ( ! $this->builder ) {
 			include_once 'thumbor-builder.php';
-			$this->builder = new Thumbor_Builder( THUMBOR_SERVER, THUMBOR_SECRET );
+			$this->builder = new Thumbor_Builder( untrailingslashit( THUMBOR_SERVER ), THUMBOR_SECRET );
 		}
 
 		return $this->builder;
