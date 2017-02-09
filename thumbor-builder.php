@@ -45,6 +45,10 @@ Class Thumbor_Builder {
 			$image_url->addFilter( 'format', $builder_args['format'] );
 		}
 
+		if ( isset( $builder_args['fill'] ) ) {
+			$image_url->addFilter( $builder_args['fill'], true);
+		}
+		
 		return $image_url;
 	}
 
