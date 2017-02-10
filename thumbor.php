@@ -82,6 +82,8 @@ Class Thumbor {
 		// Let people filter the args
 		$builder_args = apply_filters( 'thumbor_builder_args', $builder_args, $image_url, $additional_builder_args );
 
+		$image_url = apply_filters( 'thumbor_image_url_src', $image_url );
+
 		// Check if image URL should be used.
 		if ( ! $builder->validate_image_url( $image_url ) ) {
 			return false;
